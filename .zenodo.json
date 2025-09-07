@@ -1,0 +1,24 @@
+{
+  "title": "timesym: Temporal interferometer simulations and Bayesian precursor bounds",
+  "creators": [
+    {"name": "Ivan Mishchenko", "orcid": "0000-0000-0000-0000", "affiliation": "Unaffiliated"}
+  ],
+  "description": "Cross-platform code for RF/optical temporal interferometer simulations and DCQE-style validation; registered ROPE/HDI pipeline; reproducible figures for the manuscript.",
+  "keywords": [
+    "time-symmetric electrodynamics",
+    "Wheeler-Feynman",
+    "advanced waves",
+    "temporal interferometer",
+    "Bayesian analysis",
+    "DCQE"
+  ],
+  "license": "MIT",
+  "related_identifiers": [
+    {
+      "relation": "isSupplementTo",
+      "identifier": "https://github.com/bigzhopa/timesym"
+    }
+  ],
+  "upload_type": "software",
+  "notes": "This record snapshots a tagged GitHub release. Use the *concept DOI* for general citation."
+}
