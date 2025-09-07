@@ -1,0 +1,19 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+      - name: Smoke test QE scripts
+        run: |
+          python tools/press_start_qe.py --out runs/ci_qe --events 5000 --gamma 0.02
+          test -f runs/ci_qe/coincidence_hist.png
+          test -f runs/ci_qe/posterior_gamma_plot_qe.png
