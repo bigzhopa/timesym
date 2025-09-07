@@ -1,17 +1,21 @@
-name: CI (matrix)
+name: CI
 
 on:
   push:
+    branches: [ main ]
   pull_request:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
-  smoke:
+  test:
+    name: smoke (${{ matrix.os }} / py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
-        python-version: ['3.10']
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.10"]
 
     steps:
       - name: Checkout
@@ -21,80 +25,73 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: 'pip'
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements.txt
 
-      - name: Show versions
-        run: |
-          python -V
-          pip -V
+      - name: Upgrade pip
+        run: python -m pip install --upgrade pip
 
-      - name: Install package
+      - name: Install package + minimal deps
         run: |
-          python -m pip install --upgrade pip
           pip install -e .
+          pip install numpy pandas matplotlib scipy pyyaml
 
-      - name: Prepare folders
+      - name: Print version
         run: |
-          python - <<'PY'
-          import os
-          for p in ('data','runs'):
-              os.makedirs(p, exist_ok=True)
-          print('Prepared dirs:', [p for p in ('data','runs') if os.path.isdir(p)])
-          PY
+          python - << 'PY'
+import sys
+try:
+    import timesym
+    ver = getattr(timesym, "__version__", "unknown")
+except Exception as e:
+    ver = f"import failed: {e}"
+print("Python:", sys.version)
+print("timesym version:", ver)
+PY
 
-      # --- QE pipeline (dataset + analysis) ---
-      - name: Smoke: QE dataset
+      - name: Run QE smoke (fast, cross-platform)
         run: |
-          python tools/gen_qe_dataset.py \
-            --out data/qe_ci.csv \
-            --events 5000 \
-            --gamma 0.03 \
-            --seed 42 \
-            --delay_short_ns 0.0 \
-            --delay_long_ns 1.67 \
-            --jitter_ps 50.0 \
-            --coin_p 0.30 \
-            --runs 100
+          python tools/press_start_qe.py --out runs/ci_smoke --events 1000
 
-      - name: Smoke: QE analysis
-        run: |
-          python tools/analyze_qe_dataset.py \
-            --data data/qe_ci.csv \
-            --out runs/qe_ci \
-            --idler D3 \
-            --bin_ns 0.05 \
-            --range_ns 5.0 \
-            --expected_ns -1.67
-
-      # --- Cable & Optical simulations ---
-      - name: Smoke: RF cable (simulate)
-        run: |
-          python tools/final_analysis.py \
-            --simulate \
-            --out runs/cable_ci \
-            --Vpp 1.0 \
-            --seed 1234
-
-      - name: Smoke: Optical (simulate)
-        run: |
-          python tools/final_analysis_optical.py \
-            --simulate \
-            --out runs/optical_ci \
-            --seed 2025
-
-      - name: Verify import + version
-        run: |
-          python - <<'PY'
-          import timesym
-          print('timesym import OK.')
-          print('timesym.__version__ =', getattr(timesym, '__version__', '(none)'))
-          PY
-
-      - name: Upload artifacts
+      - name: Upload QE artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ci-outputs-${{ matrix.os }}
-          path: |
-            runs/**
-            data/qe_ci.csv
-          if-no-files-found: warn
+          name: qe-smoke-${{ matrix.os }}
+          path: runs/ci_smoke/**/*
+          if-no-files-found: ignore
+
+  paper:
+    name: build paper (ubuntu)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install TeX (minimal set for article class + extras)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended \
+            texlive-science texlive-binaries latexmk
+
+      - name: Build PDF
+        # Adjust filename/path below if your .tex is elsewhere
+        run: |
+          latexmk -pdf -halt-on-error -interaction=nonstopmode Advanced_Waves_and_Retrocausality.tex
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper-pdf
+          path: Advanced_Waves_and_Retrocausality.pdf
+          if-no-files-found: error
