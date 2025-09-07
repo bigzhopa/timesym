@@ -7,6 +7,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Use bash everywhere to keep things consistent (even on Windows runners)
+defaults:
+  run:
+    shell: bash
+
 jobs:
   test:
     name: smoke (${{ matrix.os }} / py${{ matrix.python-version }})
@@ -40,11 +45,11 @@ jobs:
 
       - name: Print version
         run: |
-          python - << 'PY'
-import sys
+          python - <<'PY'
+import sys, importlib
 try:
-    import timesym
-    ver = getattr(timesym, "__version__", "unknown")
+    m = importlib.import_module('timesym')
+    ver = getattr(m, '__version__', 'unknown')
 except Exception as e:
     ver = f"import failed: {e}"
 print("Python:", sys.version)
@@ -52,15 +57,14 @@ print("timesym version:", ver)
 PY
 
       - name: Run QE smoke (fast, cross-platform)
-        run: |
-          python tools/press_start_qe.py --out runs/ci_smoke --events 1000
+        run: python tools/press_start_qe.py --out runs/ci_smoke --events 1000
 
       - name: Upload QE artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: qe-smoke-${{ matrix.os }}
-          path: runs/ci_smoke/**/*
+          path: runs/ci_smoke
           if-no-files-found: ignore
 
   paper:
@@ -77,7 +81,7 @@ PY
           cache: pip
           cache-dependency-path: pyproject.toml
 
-      - name: Install TeX (minimal set for article class + extras)
+      - name: Install TeX (minimal set)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -85,9 +89,7 @@ PY
             texlive-science texlive-binaries latexmk
 
       - name: Build PDF
-        # Adjust filename/path below if your .tex is elsewhere
-        run: |
-          latexmk -pdf -halt-on-error -interaction=nonstopmode Advanced_Waves_and_Retrocausality.tex
+        run: latexmk -pdf -halt-on-error -interaction=nonstopmode Advanced_Waves_and_Retrocausality.tex
 
       - name: Upload PDF artifact
         uses: actions/upload-artifact@v4
