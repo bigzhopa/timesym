@@ -13,8 +13,13 @@ pip install -e .
 ```
 
 ## Quick start
-# python tools\press_start.py --out runs\demo
-# python tools\press_start_qe.py --out runs\qe_demo
+```bash
+# RF and Optical platform
+python tools\press_start.py --out runs\demo
+
+# DCQE re-analysis
+python tools\press_start_qe.py --out runs\qe_demo
+```
 
 ## Quick start (CLIs preserved)
 ```bash
