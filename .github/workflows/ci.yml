@@ -3,95 +3,70 @@ name: CI
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*' ]
   pull_request:
-    branches: [ main ]
-  workflow_dispatch:
 
-# Use bash everywhere to keep things consistent (even on Windows runners)
-defaults:
-  run:
-    shell: bash
+permissions:
+  contents: read
 
 jobs:
-  test:
-    name: smoke (${{ matrix.os }} / py${{ matrix.python-version }})
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.10"]
+  test-qe:
+    name: QE smoke test (Linux)
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Check out repo
         uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-          cache-dependency-path: |
-            pyproject.toml
-            requirements.txt
+          python-version: '3.10'
+          cache: 'pip'
 
-      - name: Upgrade pip
-        run: python -m pip install --upgrade pip
-
-      - name: Install package + minimal deps
+      - name: Install Python dependencies
         run: |
+          python -m pip install -U pip
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          # make package importable (even if not strictly needed for tools/)
           pip install -e .
-          pip install numpy pandas matplotlib scipy pyyaml
 
-      - name: Print version
+      - name: Run QE smoke (fast)
         run: |
-          python - <<'PY'
-import sys, importlib
-try:
-    m = importlib.import_module('timesym')
-    ver = getattr(m, '__version__', 'unknown')
-except Exception as e:
-    ver = f"import failed: {e}"
-print("Python:", sys.version)
-print("timesym version:", ver)
-PY
-
-      - name: Run QE smoke (fast, cross-platform)
-        run: python tools/press_start_qe.py --out runs/ci_smoke --events 1000
+          python tools/press_start_qe.py --out runs/qe_ci --events 5000
 
       - name: Upload QE artifacts
-        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: qe-smoke-${{ matrix.os }}
-          path: runs/ci_smoke
-          if-no-files-found: ignore
+          name: qe-smoke-artifacts
+          path: |
+            runs/qe_ci/*.png
+            runs/qe_ci/*.csv
+          if-no-files-found: warn
 
-  paper:
-    name: build paper (ubuntu)
+  build-paper:
+    name: Build LaTeX paper (Linux)
     runs-on: ubuntu-latest
+    needs: test-qe
+
     steps:
-      - name: Checkout
+      - name: Check out repo
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-          cache: pip
-          cache-dependency-path: pyproject.toml
-
-      - name: Install TeX (minimal set)
+      - name: Install TeX Live (minimal set for latexmk/pdf)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended \
-            texlive-science texlive-binaries latexmk
+            latexmk texlive-latex-recommended texlive-latex-extra \
+            texlive-fonts-recommended texlive-fonts-extra texlive-science
 
       - name: Build PDF
-        run: latexmk -pdf -halt-on-error -interaction=nonstopmode Advanced_Waves_and_Retrocausality.tex
+        run: |
+          # If your main .tex file has a different name, change it here:
+          latexmk -pdf -interaction=nonstopmode -halt-on-error Advanced_Waves_and_Retrocausality.tex
 
-      - name: Upload PDF artifact
+      - name: Upload paper PDF
         uses: actions/upload-artifact@v4
         with:
           name: paper-pdf
