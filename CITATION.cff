@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it."
+title: "timesym: Registered temporal-interferometer analysis (RF & optical) + DCQE validation"
+version: "0.1.0"
+date-released: "2025-09-07"
+authors:
+  - given-names: Ivan
+    family-names: Mishchenko
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+repository-code: "https://github.com/bigzhopa/timesym"
+license: "MIT"
+preferred-citation:
+  type: article
+  title: "Testing Time-Symmetric Electrodynamics with a Temporal Interferometer"
+  authors:
+    - given-names: Ivan
+      family-names: Mishchenko
+  year: 2025
+  journal: "preprint"
