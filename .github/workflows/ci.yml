@@ -1,19 +1,100 @@
-name: CI
-on: [push, pull_request]
+name: CI (matrix)
+
+on:
+  push:
+  pull_request:
+
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  smoke:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        python-version: ['3.10']
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
-      - name: Install
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+
+      - name: Show versions
+        run: |
+          python -V
+          pip -V
+
+      - name: Install package
         run: |
           python -m pip install --upgrade pip
           pip install -e .
-      - name: Smoke test QE scripts
+
+      - name: Prepare folders
         run: |
-          python tools/press_start_qe.py --out runs/ci_qe --events 5000 --gamma 0.02
-          test -f runs/ci_qe/coincidence_hist.png
-          test -f runs/ci_qe/posterior_gamma_plot_qe.png
+          python - <<'PY'
+          import os
+          for p in ('data','runs'):
+              os.makedirs(p, exist_ok=True)
+          print('Prepared dirs:', [p for p in ('data','runs') if os.path.isdir(p)])
+          PY
+
+      # --- QE pipeline (dataset + analysis) ---
+      - name: Smoke: QE dataset
+        run: |
+          python tools/gen_qe_dataset.py \
+            --out data/qe_ci.csv \
+            --events 5000 \
+            --gamma 0.03 \
+            --seed 42 \
+            --delay_short_ns 0.0 \
+            --delay_long_ns 1.67 \
+            --jitter_ps 50.0 \
+            --coin_p 0.30 \
+            --runs 100
+
+      - name: Smoke: QE analysis
+        run: |
+          python tools/analyze_qe_dataset.py \
+            --data data/qe_ci.csv \
+            --out runs/qe_ci \
+            --idler D3 \
+            --bin_ns 0.05 \
+            --range_ns 5.0 \
+            --expected_ns -1.67
+
+      # --- Cable & Optical simulations ---
+      - name: Smoke: RF cable (simulate)
+        run: |
+          python tools/final_analysis.py \
+            --simulate \
+            --out runs/cable_ci \
+            --Vpp 1.0 \
+            --seed 1234
+
+      - name: Smoke: Optical (simulate)
+        run: |
+          python tools/final_analysis_optical.py \
+            --simulate \
+            --out runs/optical_ci \
+            --seed 2025
+
+      - name: Verify import + version
+        run: |
+          python - <<'PY'
+          import timesym
+          print('timesym import OK.')
+          print('timesym.__version__ =', getattr(timesym, '__version__', '(none)'))
+          PY
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-outputs-${{ matrix.os }}
+          path: |
+            runs/**
+            data/qe_ci.csv
+          if-no-files-found: warn
