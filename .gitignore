@@ -1,9 +1,37 @@
+﻿# Python
 __pycache__/
 *.pyc
-.DS_Store
-.venv/
-runs/
-data/
-cal/
-paper_assets/
+*.pyo
+*.pyd
 *.egg-info/
+.venv/
+venv/
+.env
+.pytest_cache/
+.mypy_cache/
+
+# Project outputs
+runs/
+outputs/
+*.csv
+*.png
+
+# LaTeX
+*.aux
+*.log
+*.out
+*.toc
+*.bbl
+*.blg
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.lof
+*.lot
+build/
+
+# OS/Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
