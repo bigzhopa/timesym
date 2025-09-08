@@ -1,11 +1,11 @@
 cff-version: 1.2.0
-title: timesym — registered temporal-interferometer analysis (RF/optical) + DCQE validation
+title: "timesym — registered temporal-interferometer analysis (RF/optical) + DCQE validation"
 message: "If you use this software, please cite it as below."
 type: software
 authors:
   - family-names: Mishchenko
     given-names: Ivan
-repository-code: https://github.com/bigzhopa/timesym
+repository-code: "https://github.com/bigzhopa/timesym"
 license: MIT
-version: 0.2.1
-date-released: 2025-09-08
+version: 0.2.2
+date-released: 2025-09-07
