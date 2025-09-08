@@ -1,19 +1,11 @@
 cff-version: 1.2.0
+title: timesym — registered temporal-interferometer analysis (RF/optical) + DCQE validation
 message: "If you use this software, please cite it as below."
-title: "timesym: Temporal interferometer simulations and Bayesian precursor bounds (RF & optical + DCQE validation)"
-version: 0.1.0
+type: software
 authors:
   - family-names: Mishchenko
     given-names: Ivan
-    orcid: "https://orcid.org/0000-0000-0000-0000"
-    affiliation: "Unaffiliated"
-date-released: 2025-09-07
-keywords:
-  - time-symmetric electrodynamics
-  - Wheeler-Feynman
-  - transactional interpretation
-  - temporal interferometer
-  - Bayesian ROPE/HDI
-  - delayed-choice quantum eraser
-repository-code: "https://github.com/bigzhopa/timesym"
-license: "MIT"
+repository-code: https://github.com/bigzhopa/timesym
+license: MIT
+version: 0.2.1
+date-released: 2025-09-08

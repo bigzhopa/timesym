@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "timesym"
-version = "0.1.0"
+version = "0.2.1"
 description = "Temporal interferometer simulations and analysis shims (RF cable, optical, QE)."
 authors = [{name = "Your Name"}]
 readme = "README.md"
